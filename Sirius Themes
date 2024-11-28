@@ -1,3 +1,5 @@
+
+
 -- Create Variables for Roblox Services
 local coreGui = game:GetService("CoreGui")
 local httpService = game:GetService("HttpService")
@@ -9,22 +11,14 @@ local userInputService = game:GetService('UserInputService')
 local localPlayer = game.Players.LocalPlayer
 local notifications = {}
 
-
 local mouse = localPlayer:GetMouse()
 local debounce = false
-
--- Boot Up
-
-while game.CoreGui:FindFirstChild("Sirius").Settings.SettingTypes:FindFirstChild("Themes") do
-	game.CoreGui:FindFirstChild("Sirius").Settings.SettingTypes:FindFirstChild("Themes"):Destroy()
-end
 
 local currenttheme = nil
 
 
 -- Configurable Core Values
 local siriusValues = {
-	siriusVersion = "1.26",
 	siriusName = "Sirius",
 	releaseType = "Stable",
 	siriusFolder = "Sirius",
@@ -33,48 +27,7 @@ local siriusValues = {
 	cdn = "https://cdn.sirius.menu/SIRIUS-SCRIPT-CORE-ASSETS/",
 	icons = "https://cdn.sirius.menu/SIRIUS-SCRIPT-CORE-ASSETS/Icons/",
 	enableExperienceSync = false, -- Games are no longer available due to a lack of whitelisting, they may be made open source at a later date, however they are patched as of now and are useless to the end user. Turning this on may introduce "fake functionality".
-	games = {
-		BreakingPoint = {
-			name = "Breaking Point",
-			description = "Players are seated around a table. Their only goal? To be the last one standing. Execute this script to gain an unfair advantage.",
-			id = 648362523,
-			enabled = true,
-			raw = "BreakingPoint",
-			minimumTier = "Free",
-		},
-		MurderMystery2 = {
-			name = "Murder Mystery 2",
-			description = "A murder has occured, will you be the one to find the murderer, or kill your next victim? Execute this script to gain an unfair advantage.",
-			id = 142823291,
-			enabled = true,
-			raw = "MurderMystery2",
-			minimumTier = "Free",
-		},
-		TowerOfHell = {
-			name = "Tower Of Hell",
-			description = "A difficult popular parkouring game, with random levels and modifiers. Execute this script to gain an unfair advantage.",
-			id = 1962086868,
-			enabled = true,
-			raw = "TowerOfHell",
-			minimumTier = "Free",
-		},
-		Strucid = {
-			name = "Strucid",
-			description = "Fight friends and enemies in Strucid with building mechanics! Execute this script to gain an unfair advantage.",
-			id = 2377868063,
-			enabled = true,
-			raw = "Strucid",
-			minimumTier = "Free",
-		},
-		PhantomForces = {
-			name = "Phantom Forces",
-			description = "One of the most popular FPS shooters from the team at StyLiS Studios. Execute this script to gain an unfair advantage.",
-			id = 292439477,
-			enabled = true,
-			raw = "PhantomForces",
-			minimumTier = "Pro",
-		},
-	},
+
 	rawTree = "https://raw.githubusercontent.com/SiriusSoftwareLtd/Sirius/Sirius/games/",
 	neonModule = "https://raw.githubusercontent.com/shlexware/Sirius/request/library/neon.lua",
 	transparencyProperties = {
@@ -114,8 +67,170 @@ local siriusValues = {
 	}
 }
 
+-- Boot Up 
+
+local function figureNotifications()
+	local notificationsSize = 0
+
+	for i = #notifications, 0, -1 do
+		local notification = notifications[i]
+		if notification then
+			if notificationsSize == 0 then
+				notificationsSize = notification.Size.Y.Offset + 2
+			else
+				notificationsSize += notification.Size.Y.Offset + 5
+			end
+			local desiredPosition = UDim2.new(0.5, 0, 0, notificationsSize)
+			if notification.Position ~= desiredPosition then
+				notification:TweenPosition(desiredPosition, "Out", "Quint", 0.8, true)
+			end
+		end
+	end	
+end
+
+local gui = game:GetObjects('rbxassetid://'..siriusValues.interfaceAsset)[1] --  game.CoreGui:FindFirstChild("Sirius").Notifications
+gui.Name = "Notifier"
+local notificationContainer = game.CoreGui.SiriusChecker.Notifications or gui.Notifications
+local gui2 = game.CoreGui.SiriusChecker or Instance.new("ScreenGui")
+gui2.Name = "SiriusChecker"
+gui2.Parent = game.CoreGui
+notificationContainer.Parent = gui2
+
+local function wipeTransparency(ins, target, checkSelf, tween, duration)
+	local transparencyProperties = siriusValues.transparencyProperties
+
+	local function applyTransparency(obj)
+		local properties = transparencyProperties[obj.className]
+
+		if properties then
+			local tweenProperties = {}
+
+			for _, property in ipairs(properties) do
+				tweenProperties[property] = target
+			end
+
+			for property, transparency in pairs(tweenProperties) do
+				if tween then
+					tweenService:Create(obj, TweenInfo.new(duration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {[property] = transparency}):Play()
+				else
+					obj[property] = transparency
+				end
+
+			end
+		end
+	end
+
+	if checkSelf then
+		applyTransparency(ins)
+	end
+
+	for _, descendant in ipairs(ins:getDescendants()) do
+		applyTransparency(descendant)
+	end
+end
+
+
+local function queueNotification(Title, Description, Image)
+	task.spawn(function()		
+		local newNotification = notificationContainer.Template:Clone()
+		newNotification.Parent = notificationContainer
+		newNotification.Name = Title or "Unknown Title"
+		newNotification.Visible = true
+
+		newNotification.Title.Text = Title or "Unknown Title"
+		newNotification.Description.Text = Description or "Unknown Description"
+		newNotification.Time.Text = "now"
+
+		-- Prepare for animation
+		newNotification.AnchorPoint = Vector2.new(0.5, 1)
+		newNotification.Position = UDim2.new(0.5, 0, -1, 0)
+		newNotification.Size = UDim2.new(0, 320, 0, 500)
+		newNotification.Description.Size = UDim2.new(0, 241, 0, 400)
+		wipeTransparency(newNotification, 1, true)
+
+		newNotification.Description.Size = UDim2.new(0, 241, 0, newNotification.Description.TextBounds.Y)
+		newNotification.Size = UDim2.new(0, 100, 0, newNotification.Description.TextBounds.Y + 50)
+
+		table.insert(notifications, newNotification)
+		figureNotifications()
+
+		local notificationSound = Instance.new("Sound")
+		notificationSound.Parent = game.Workspace
+		notificationSound.SoundId = "rbxassetid://255881176"
+		notificationSound.Name = "notificationSound"
+		notificationSound.Volume = 0.65
+		notificationSound.PlayOnRemove = true
+		notificationSound:Destroy()
+
+
+		if not tonumber(Image) then
+			newNotification.Icon.Image = 'rbxassetid://14317577326'
+		else
+			newNotification.Icon.Image = 'rbxassetid://'..Image or 0
+		end
+
+		newNotification:TweenPosition(UDim2.new(0.5, 0, 0, newNotification.Size.Y.Offset + 2), "Out", "Quint", 0.9, true)
+		task.wait(0.1)
+		tweenService:Create(newNotification, TweenInfo.new(0.8, Enum.EasingStyle.Exponential), {Size = UDim2.new(0, 320, 0, newNotification.Description.TextBounds.Y + 50)}):Play()
+		task.wait(0.05)
+		tweenService:Create(newNotification, TweenInfo.new(0.8, Enum.EasingStyle.Exponential), {BackgroundTransparency = 0.35}):Play()
+		tweenService:Create(newNotification.UIStroke, TweenInfo.new(0.6, Enum.EasingStyle.Exponential), {Transparency = 0.7}):Play()
+		task.wait(0.05)
+		tweenService:Create(newNotification.Icon, TweenInfo.new(0.5, Enum.EasingStyle.Exponential), {ImageTransparency = 0}):Play()
+		task.wait(0.04)
+		tweenService:Create(newNotification.Title, TweenInfo.new(0.5, Enum.EasingStyle.Exponential), {TextTransparency = 0}):Play()
+		task.wait(0.04)
+		tweenService:Create(newNotification.Description, TweenInfo.new(0.5, Enum.EasingStyle.Exponential), {TextTransparency = 0.15}):Play()
+		tweenService:Create(newNotification.Time, TweenInfo.new(0.5, Enum.EasingStyle.Exponential), {TextTransparency = 0.5}):Play()
+
+		--neonModule:BindFrame(newNotification.BlurModule, {
+		--	Transparency = 0.98,
+		--	BrickColor = BrickColor.new("Institutional white")
+		--})
+
+		newNotification.Interact.MouseButton1Click:Connect(function()
+			local foundNotification = table.find(notifications, newNotification)
+			if foundNotification then table.remove(notifications, foundNotification) end
+
+			tweenService:Create(newNotification, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(1.5, 0, 0, newNotification.Position.Y.Offset)}):Play()
+
+			task.wait(0.4)
+			newNotification:Destroy()
+			figureNotifications()
+			return
+		end)
+
+		local waitTime = (#newNotification.Description.Text*0.1)+2
+		if waitTime <= 1 then waitTime = 2.5 elseif waitTime > 10 then waitTime = 10 end
+
+		task.wait(waitTime)
+
+		local foundNotification = table.find(notifications, newNotification)
+		if foundNotification then table.remove(notifications, foundNotification) end
+
+		tweenService:Create(newNotification, TweenInfo.new(0.8, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(1.5, 0, 0, newNotification.Position.Y.Offset)}):Play()
+
+		task.wait(1.2)
+		--neonModule:UnbindFrame(newNotification.BlurModule)
+		newNotification:Destroy()
+		figureNotifications()
+	end)
+end
+
+if game.CoreGui:FindFirstChild("Sirius") then
+	print("Found Sirius UI")
+else
+	queueNotification("Couldn't find Sirius", "Sirius couldn't be located in the Core Gui, make sure you execute Sirius properly before executing the plugin.", 10734910187)
+	return
+end
+
 local UI = game.CoreGui:FindFirstChild("Sirius") --game:GetObjects('rbxassetid://'..siriusValues.interfaceAsset)[1]
 local guiObject =  UI
+
+
+while game.CoreGui:FindFirstChild("Sirius").Settings.SettingTypes:FindFirstChild("Themes") do
+	game.CoreGui:FindFirstChild("Sirius").Settings.SettingTypes:FindFirstChild("Themes"):Destroy()
+end
 
 local RunService = game:GetService("RunService")
 local connection = nil
@@ -754,150 +869,6 @@ local function assembleSettings()
 end
 
 assembleSettings()
-
-
-local function wipeTransparency(ins, target, checkSelf, tween, duration)
-	local transparencyProperties = siriusValues.transparencyProperties
-
-	local function applyTransparency(obj)
-		local properties = transparencyProperties[obj.className]
-
-		if properties then
-			local tweenProperties = {}
-
-			for _, property in ipairs(properties) do
-				tweenProperties[property] = target
-			end
-
-			for property, transparency in pairs(tweenProperties) do
-				if tween then
-					tweenService:Create(obj, TweenInfo.new(duration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {[property] = transparency}):Play()
-				else
-					obj[property] = transparency
-				end
-
-			end
-		end
-	end
-
-	if checkSelf then
-		applyTransparency(ins)
-	end
-
-	for _, descendant in ipairs(ins:getDescendants()) do
-		applyTransparency(descendant)
-	end
-end
-
-
-local function figureNotifications()
-	local notificationsSize = 0
-
-	for i = #notifications, 0, -1 do
-		local notification = notifications[i]
-		if notification then
-			if notificationsSize == 0 then
-				notificationsSize = notification.Size.Y.Offset + 2
-			else
-				notificationsSize += notification.Size.Y.Offset + 5
-			end
-			local desiredPosition = UDim2.new(0.5, 0, 0, notificationsSize)
-			if notification.Position ~= desiredPosition then
-				notification:TweenPosition(desiredPosition, "Out", "Quint", 0.8, true)
-			end
-		end
-	end	
-end
-
-local notificationContainer = game.CoreGui:FindFirstChild("Sirius").Notifications
-	
-	
-local function queueNotification(Title, Description, Image)
-	task.spawn(function()		
-		local newNotification = notificationContainer.Template:Clone()
-		newNotification.Parent = notificationContainer
-		newNotification.Name = Title or "Unknown Title"
-		newNotification.Visible = true
-
-		newNotification.Title.Text = Title or "Unknown Title"
-		newNotification.Description.Text = Description or "Unknown Description"
-		newNotification.Time.Text = "now"
-
-		-- Prepare for animation
-		newNotification.AnchorPoint = Vector2.new(0.5, 1)
-		newNotification.Position = UDim2.new(0.5, 0, -1, 0)
-		newNotification.Size = UDim2.new(0, 320, 0, 500)
-		newNotification.Description.Size = UDim2.new(0, 241, 0, 400)
-		wipeTransparency(newNotification, 1, true)
-
-		newNotification.Description.Size = UDim2.new(0, 241, 0, newNotification.Description.TextBounds.Y)
-		newNotification.Size = UDim2.new(0, 100, 0, newNotification.Description.TextBounds.Y + 50)
-
-		table.insert(notifications, newNotification)
-		figureNotifications()
-
-		local notificationSound = Instance.new("Sound")
-		notificationSound.Parent = UI
-		notificationSound.SoundId = "rbxassetid://255881176"
-		notificationSound.Name = "notificationSound"
-		notificationSound.Volume = 0.65
-		notificationSound.PlayOnRemove = true
-		notificationSound:Destroy()
-
-
-		if not tonumber(Image) then
-			newNotification.Icon.Image = 'rbxassetid://14317577326'
-		else
-			newNotification.Icon.Image = 'rbxassetid://'..Image or 0
-		end
-
-		newNotification:TweenPosition(UDim2.new(0.5, 0, 0, newNotification.Size.Y.Offset + 2), "Out", "Quint", 0.9, true)
-		task.wait(0.1)
-		tweenService:Create(newNotification, TweenInfo.new(0.8, Enum.EasingStyle.Exponential), {Size = UDim2.new(0, 320, 0, newNotification.Description.TextBounds.Y + 50)}):Play()
-		task.wait(0.05)
-		tweenService:Create(newNotification, TweenInfo.new(0.8, Enum.EasingStyle.Exponential), {BackgroundTransparency = 0.35}):Play()
-		tweenService:Create(newNotification.UIStroke, TweenInfo.new(0.6, Enum.EasingStyle.Exponential), {Transparency = 0.7}):Play()
-		task.wait(0.05)
-		tweenService:Create(newNotification.Icon, TweenInfo.new(0.5, Enum.EasingStyle.Exponential), {ImageTransparency = 0}):Play()
-		task.wait(0.04)
-		tweenService:Create(newNotification.Title, TweenInfo.new(0.5, Enum.EasingStyle.Exponential), {TextTransparency = 0}):Play()
-		task.wait(0.04)
-		tweenService:Create(newNotification.Description, TweenInfo.new(0.5, Enum.EasingStyle.Exponential), {TextTransparency = 0.15}):Play()
-		tweenService:Create(newNotification.Time, TweenInfo.new(0.5, Enum.EasingStyle.Exponential), {TextTransparency = 0.5}):Play()
-
-		--neonModule:BindFrame(newNotification.BlurModule, {
-		--	Transparency = 0.98,
-		--	BrickColor = BrickColor.new("Institutional white")
-		--})
-
-		newNotification.Interact.MouseButton1Click:Connect(function()
-			local foundNotification = table.find(notifications, newNotification)
-			if foundNotification then table.remove(notifications, foundNotification) end
-
-			tweenService:Create(newNotification, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(1.5, 0, 0, newNotification.Position.Y.Offset)}):Play()
-
-			task.wait(0.4)
-			newNotification:Destroy()
-			figureNotifications()
-			return
-		end)
-
-		local waitTime = (#newNotification.Description.Text*0.1)+2
-		if waitTime <= 1 then waitTime = 2.5 elseif waitTime > 10 then waitTime = 10 end
-
-		task.wait(waitTime)
-
-		local foundNotification = table.find(notifications, newNotification)
-		if foundNotification then table.remove(notifications, foundNotification) end
-
-		tweenService:Create(newNotification, TweenInfo.new(0.8, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(1.5, 0, 0, newNotification.Position.Y.Offset)}):Play()
-
-		task.wait(1.2)
-		--neonModule:UnbindFrame(newNotification.BlurModule)
-		newNotification:Destroy()
-		figureNotifications()
-	end)
-end
 
 queueNotification("Theme Plugin Added", "Thank you for using Theme plugin!", 10734910187)
 
