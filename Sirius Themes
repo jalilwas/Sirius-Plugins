@@ -545,7 +545,6 @@ local function assembleSettings()
 					newButton.Interact.MouseButton1Down:Connect(function()
 						if setting.callback then
 							setting.callback()
-							print("done ig?")
 						end
 					end)
 
