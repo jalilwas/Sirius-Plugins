@@ -90,8 +90,8 @@ end
 
 local gui = game:GetObjects('rbxassetid://'..siriusValues.interfaceAsset)[1] --  game.CoreGui:FindFirstChild("Sirius").Notifications
 gui.Name = "Notifier"
-local notificationContainer = game.CoreGui.SiriusChecker.Notifications or gui.Notifications
-local gui2 = game.CoreGui.SiriusChecker or Instance.new("ScreenGui")
+local notificationContainer = gui.Notifications
+local gui2 = Instance.new("ScreenGui")
 gui2.Name = "SiriusChecker"
 gui2.Parent = game.CoreGui
 notificationContainer.Parent = gui2
