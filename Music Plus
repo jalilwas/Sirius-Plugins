@@ -1,23 +1,41 @@
 -- Music+
 
 local ver = 0.1
-local guiParent = gethui and gethui() or game:GetService("CoreGui")
+local guiParent = game:GetService("CoreGui")
 local uiObjects = game:GetObjects('rbxassetid://115604975957931')
 local mpUi = uiObjects[1]
-local Sirius = guiParent:FindFirstChild("Sirius")
 
-if Sirius and Sirius:FindFirstChild("Music") then
-	Sirius.Music.Position = UDim2.new(10, 0, 10, 0)
-	Sirius.Music.Visible = false
+-- // Sirius Finder
+
+local parent
+local guiObject
+
+for _, child in ipairs(game:GetDescendants()) do 
+	if child.Name == "Sirius" then
+		parent = child.Parent
+		guiObject = parent:FindFirstChild("Sirius")
+		break
+	end
 end
 
-if Sirius and Sirius:FindFirstChild("MusicPlus") then
-	Sirius.MusicPlus:Destroy()
+if parent and guiObject then
+	print("Parent of Sirius:", parent)
+	print("GuiObject found:", guiObject)
+else
+	warn("Sirius was not found in the game's descendants.")
 end
+
+if guiObject:FindFirstChild("MusicPlus") then
+	guiObject.MusicPlus:Destroy()
+end
+
+local Sirius = guiObject
+
+-- // Main
 
 local Pannel = mpUi.Music:Clone()
 Pannel.Name = "MusicPlus"
-Pannel.Parent = Sirius
+Pannel.Parent = guiObject
 Pannel.Size = UDim2.new(0, 0, 0, 0)
 Pannel.Visible = false
 
@@ -92,33 +110,41 @@ allSongsEntry.Info.Number.Text = tostring(#allSongs)
 allSongsEntry.BackgroundColor3 = Color3.new(0.5, 0.5, 0.5)
 allSongsEntry.Icon.Visible = false
 
+local function playNextSong()
+	if #musicQueue > 0 then
+		local nextSong = musicQueue[1]
+		table.remove(musicQueue, 1)
+		playSong(nextSong)
+	end
+end
+
 for _, v in ipairs(listfiles("Sirius/Music")) do
 	if isfolder(v) then
 		local newPlaylistEntry = playlistTemplate:Clone()
 		newPlaylistEntry.Visible = true
 		newPlaylistEntry.Parent = playlistList
-		newPlaylistEntry.Info.Title.Text = v:match("[^/\\]+$")
-		newPlaylistEntry.Name = v:match("[^/\\]+$")
+		newPlaylistEntry.Info.Title.Text = v:match("[^/\]+$")
+		newPlaylistEntry.Name = v:match("[^/\]+$")
 		setRandomColor(newPlaylistEntry)
 
 		local musicFiles = loadSongsFromFolder(v)
 		playlists[v] = musicFiles
 
 		newPlaylistEntry.Info.Number.Text = tostring(#musicFiles)
-		
+
 		newPlaylistEntry.Icon.Visible = false
-		
+
 		local iconFile = v .. "/Icon.png"
 		if iconFile then
 			newPlaylistEntry.Icon.Image = iconFile
 		else
 			newPlaylistEntry.Icon.Visible = false
 		end
-		
+
 		if newPlaylistEntry.Icon.Image == nil then
 			newPlaylistEntry.Icon.Visible = false
 		end
-		
+
 		if isfile(iconFile) then
 			newPlaylistEntry.Icon.Image = getcustomasset(iconFile)
 			newPlaylistEntry.Icon.Visible = true
@@ -133,7 +159,7 @@ for _, v in ipairs(listfiles("Sirius/Music")) do
 			local newSongEntry = template:Clone()
 			newSongEntry.Visible = true
 			newSongEntry.Parent = playlistFrame
-			newSongEntry.FileName.Text = file:match("[^/\\]+$"):gsub(".mp3", "")
+			newSongEntry.FileName.Text = file:match("[^/\]+$"):gsub(".mp3", "")
 
 			local sound = Instance.new("Sound")
 			sound.SoundId = getcustomasset(file)
@@ -152,17 +178,56 @@ for _, v in ipairs(listfiles("Sirius/Music")) do
 				if not musicQueue[file] then
 					table.insert(musicQueue, file)
 					playSong(file)
+					file.Ended:Connect(function()
+						playNextSong()
+					end)
 				else
 					stopCurrentSong()
 				end
 			end)
-			
-			
+
+			newSongEntry.FileName.TextTransparency = 1
+			newSongEntry.BackgroundTransparency = 1
+
+			local ts = game:GetService("TweenService")
+
+
+			ts:Create(newSongEntry, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0.7}):Play()
+			ts:Create(newSongEntry.FileName, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+
+			wait(0.1)
+
 		end
 
 		newPlaylistEntry.Info.Interact.MouseButton1Click:Connect(function()
 			hideAllScrollingFrames()
 			playlistFrame.Visible = true
+
+			for _, child in ipairs(playlistFrame:GetChildren()) do
+				if child:isA("Frame") and child.Name ~= "Placeholder" then
+					local newSongEntry = child
+
+					newSongEntry.FileName.TextTransparency = 1
+					newSongEntry.Duration.TextTransparency = 1
+					newSongEntry.BackgroundTransparency = 1
+				end
+			end
+
+			for _, child in ipairs(playlistFrame:GetChildren()) do
+				if child:isA("Frame") and child.Name ~= "Placeholder" then
+					local newSongEntry = child
+
+					local ts = game:GetService("TweenService")
+
+
+					ts:Create(newSongEntry, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0.7}):Play()
+					ts:Create(newSongEntry.FileName, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+					ts:Create(newSongEntry.Duration, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0.7}):Play()
+
+					wait(0.1)
+				end
+			end
+
 		end)
 	end
 end
@@ -177,7 +242,11 @@ allSongsEntry.Info.Interact.MouseButton1Click:Connect(function()
 		local newSongEntry = template:Clone()
 		newSongEntry.Visible = true
 		newSongEntry.Parent = allSongsFrame
-		newSongEntry.FileName.Text = file:match("[^/\\]+$"):gsub(".mp3", "")
+		newSongEntry.FileName.Text = file:match("[^/\]+$"):gsub(".mp3", "")
+
+		newSongEntry.FileName.TextTransparency = 1
+		newSongEntry.Duration.TextTransparency = 1
+		newSongEntry.BackgroundTransparency = 1
 
 		local sound = Instance.new("Sound")
 		sound.SoundId = getcustomasset(file)
@@ -202,6 +271,32 @@ allSongsEntry.Info.Interact.MouseButton1Click:Connect(function()
 		end)
 	end
 	scrollingFrames["AllSongs"] = allSongsFrame
+
+	for _, child in ipairs(allSongsFrame:GetChildren()) do
+		if child:isA("Frame") and child.Name ~= "Placeholder" then
+			local newSongEntry = child
+
+			newSongEntry.FileName.TextTransparency = 1
+			newSongEntry.Duration.TextTransparency = 1
+			newSongEntry.BackgroundTransparency = 1
+		end
+	end
+
+	for _, child in ipairs(allSongsFrame:GetChildren()) do
+		if child:isA("Frame") and child.Name ~= "Placeholder" then
+			local newSongEntry = child
+
+			local ts = game:GetService("TweenService")
+
+
+			ts:Create(newSongEntry, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0.7}):Play()
+			ts:Create(newSongEntry.FileName, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+			ts:Create(newSongEntry.Duration, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0.7}):Play()
+
+			wait(0.1)
+		end
+	end
+
 end)
 
 local UIS = game:GetService("UserInputService")
@@ -236,23 +331,24 @@ end)
 local open = false
 
 local function tweenPanelSize(newSize)
-	Pannel.Parent = Sirius
+	Pannel.Parent = guiObject
 	Pannel:TweenSize(newSize, Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.5, true, function()
-		Pannel.Parent = Sirius
+		Pannel.Parent = guiObject
 	end)
 end
 
 local function togglePanel()
-	if open then
+	if open == true then
+		open = false
 		tweenPanelSize(UDim2.new(0, 0, 0, 0))
-		task.delay(0.5)
+		wait(0.5)
 		Pannel.Visible = false
 	else
+		open = true
 		Pannel.Visible = true
 		task.wait()
 		tweenPanelSize(UDim2.new(0, 550, 0, 379))
 	end
-	open = not open
 end
 
 if Sirius and Sirius.SmartBar and Sirius.SmartBar.Buttons and Sirius.SmartBar.Buttons.Music and Sirius.SmartBar.Buttons.Music.Interact then
@@ -279,11 +375,15 @@ end
 if Pannel.Menu.Next then
 	Pannel.Menu.Next.MouseButton1Click:Connect(function()
 		local currentIndex = findSongIndex(currentAudio.SoundId)
-		if currentIndex then
-			playSong(musicQueue[(currentIndex % #musicQueue) + 1])
+		if currentIndex and currentIndex > 0 and currentIndex <= #musicQueue then
+			local nextIndex = (currentIndex % #musicQueue) + 1
+
+			playSong(musicQueue[nextIndex])
+		else
 		end
 	end)
 end
+
 
 if Pannel.Menu.Previous then
 	Pannel.Menu.Previous.MouseButton1Click:Connect(function()
@@ -512,11 +612,13 @@ local function queueNotification(Title, Description, Image)
 	end)
 end
 
-if game.CoreGui:FindFirstChild("Sirius") then
+if guiObject then
 	print("Found Sirius UI")
 else
 	queueNotification("Couldn't find Sirius", "Sirius couldn't be located in the Core Gui, make sure you execute Sirius properly before executing the plugin.", 10734910187)
 	return
 end
 
-queueNotification("Music+ Plugin", "Thanks for using Music+, this is version " .. ver .."!", 10734910187)
+queueNotification("Music+ Plugin", "Thanks for using Music+, this is version " .. ver .."!", 10734910187)  -- when a music appear, make them invisible then tween their transparency to 0 one by one with a 0.1 seconds delay, even the text, stroke if there are ect
+
+Pannel.Menu.Next.Visible = true
