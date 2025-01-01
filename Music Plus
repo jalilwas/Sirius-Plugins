@@ -25,8 +25,6 @@ else
 	warn("Sirius was not found in the game's descendants.")
 end
 
-guiObject:FindFirstChild("Music).Position = UDim2.new(10, 0, 10, 0)
-
 if guiObject:FindFirstChild("MusicPlus") then
 	guiObject.MusicPlus:Destroy()
 end
@@ -48,6 +46,7 @@ template.Visible = false
 local playlistList = Pannel.Playlists.List
 local playlistTemplate = playlistList.Template
 playlistTemplate.Visible = false
+Sirius:FindFirstChild("Music").Position = UDim2.new(10, 0, 10, 0)
 
 local musicQueue = {}
 local currentAudio
@@ -332,25 +331,27 @@ end)
 
 local open = false
 
-local function tweenPanelSize(newSize)
-	Pannel.Parent = guiObject
-	Pannel:TweenSize(newSize, Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.5, true, function()
-		Pannel.Parent = guiObject
-	end)
+local function tweenPanelSize(newSize, callback)
+    if Pannel.Parent ~= guiObject then
+        return
+    end
+    Pannel:TweenSize(newSize, Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.5, true, callback)
 end
 
 local function togglePanel()
-	if open == true then
-		open = false
-		tweenPanelSize(UDim2.new(0, 0, 0, 0))
-		wait(0.5)
-		Pannel.Visible = false
-	else
-		open = true
-		Pannel.Visible = true
-		task.wait()
-		tweenPanelSize(UDim2.new(0, 550, 0, 379))
-	end
+    if open then
+        open = false
+        tweenPanelSize(UDim2.new(0, 0, 0, 0), function()
+            Pannel.Visible = false
+        end)
+    else
+        open = true
+        Pannel.Visible = true
+        
+        tweenPanelSize(UDim2.new(0, 550, 0, 379), function()
+            --
+        end)
+    end
 end
 
 if Sirius and Sirius.SmartBar and Sirius.SmartBar.Buttons and Sirius.SmartBar.Buttons.Music and Sirius.SmartBar.Buttons.Music.Interact then
@@ -624,4 +625,3 @@ end
 queueNotification("Music+ Plugin", "Thanks for using Music+, this is version " .. ver .."!", 10734910187)  -- when a music appear, make them invisible then tween their transparency to 0 one by one with a 0.1 seconds delay, even the text, stroke if there are ect
 
 Pannel.Menu.Next.Visible = true
-Pannel.Menu.TogglePlaying.Visible = true
