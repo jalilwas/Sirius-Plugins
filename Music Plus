@@ -25,6 +25,8 @@ else
 	warn("Sirius was not found in the game's descendants.")
 end
 
+guiObject:FindFirstChild("Music).Position = UDim2.new(10, 0, 10, 0)
+
 if guiObject:FindFirstChild("MusicPlus") then
 	guiObject.MusicPlus:Destroy()
 end
@@ -622,3 +624,4 @@ end
 queueNotification("Music+ Plugin", "Thanks for using Music+, this is version " .. ver .."!", 10734910187)  -- when a music appear, make them invisible then tween their transparency to 0 one by one with a 0.1 seconds delay, even the text, stroke if there are ect
 
 Pannel.Menu.Next.Visible = true
+Pannel.Menu.TogglePlaying.Visible = true
